@@ -8,14 +8,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryBlue,
-    onPrimary = SurfaceCard,
-    primaryContainer = PrimaryBlueVariant,
-    secondary = SecondaryTeal,
-    background = BackgroundLight,
-    surface = SurfaceCard,
-    onBackground = TextPrimary,
-    onSurface = TextPrimary
+    primary = M3Primary,
+    onPrimary = M3OnPrimary,
+    primaryContainer = M3PrimaryContainer,
+    onPrimaryContainer = M3OnPrimaryContainer,
+    secondary = M3Secondary,
+    onSecondary = M3OnSecondary,
+    secondaryContainer = M3SecondaryContainer,
+    onSecondaryContainer = M3OnSecondaryContainer,
+    background = M3Background,
+    surface = M3Surface,
+    onBackground = M3OnBackground,
+    onSurface = M3OnSurface,
+    surfaceVariant = M3SurfaceVariant,
+    onSurfaceVariant = M3OnSurfaceVariant,
+    outline = M3Outline,
+    error = ErrorRed
 )
 
 private val DarkColorScheme = darkColorScheme(
@@ -30,10 +38,11 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun AccidentGuardTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false, // Force light theme by default
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    // Always use LightColorScheme for AccidentGuard to ensure a professional emergency tech look
+    val colorScheme = LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

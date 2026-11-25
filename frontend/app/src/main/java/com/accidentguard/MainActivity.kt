@@ -117,19 +117,33 @@ class MainActivity : ComponentActivity() {
                     "sessionId=$sessionId, autoAccept=$autoAccept"
         )
 
-        if (sessionId <= 0) {
-            Log.w(TAG, "Invalid session ID: $sessionId")
-            return
-        }
-
         val currentEntry = navController.currentBackStackEntry
         val currentRoute = currentEntry?.destination?.route
         val currentSessionId =
             currentEntry?.arguments?.getInt("sessionId", -1) ?: -1
 
         when (navigateTo) {
+            "dashboard" -> {
+                if (currentRoute != Screen.Dashboard.route) {
+                    navController.navigate(Screen.Dashboard.route) {
+                        launchSingleTop = true
+                    }
+                }
+            }
+
+            "hospital_dashboard" -> {
+                if (currentRoute != Screen.HospitalDashboard.route) {
+                    navController.navigate(Screen.HospitalDashboard.route) {
+                        launchSingleTop = true
+                    }
+                }
+            }
 
             "incoming_call" -> {
+                if (sessionId <= 0) {
+                    Log.w(TAG, "Invalid session ID for incoming call")
+                    return
+                }
 
                 if (
                     currentRoute?.startsWith("incoming_call/") == true &&

@@ -211,7 +211,7 @@ fun AccidentEventCard(accident: Accident, onClick: () -> Unit) {
             )
 
             Spacer(modifier = Modifier.height(10.dp))
-            Divider(color = DividerGrey)
+            HorizontalDivider(color = DividerGrey)
             Spacer(modifier = Modifier.height(10.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {

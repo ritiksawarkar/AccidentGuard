@@ -40,7 +40,6 @@ fun SecuritySettingsScreen(
     val context = LocalContext.current
     val biometricHelper = remember { BiometricHelper(context) }
 
-    var is2FAEnabled by remember { mutableStateOf(tokenManager.is2FAEnabled()) }
     var isBiometricEnabled by remember { mutableStateOf(tokenManager.isBiometricEnabled()) }
 
     val lastLogin = remember {
@@ -82,9 +81,9 @@ fun SecuritySettingsScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text("Account Security: ", fontSize = 16.sp, color = TextPrimary)
                         Text(
-                            if (is2FAEnabled && isBiometricEnabled) "Strong" else "Moderate",
+                            if (isBiometricEnabled) "Strong" else "Moderate",
                             fontWeight = FontWeight.Bold,
-                            color = if (is2FAEnabled && isBiometricEnabled) SafeGreen else WarningOrange
+                            color = if (isBiometricEnabled) SafeGreen else WarningOrange
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
@@ -97,20 +96,6 @@ fun SecuritySettingsScreen(
             // ── Authentication Methods ──
             SettingsSectionHeader("Authentication Methods")
             SettingsCard {
-                SettingsToggleRow(
-                    icon = Icons.Default.PhonelinkLock,
-                    title = "Two-Factor Authentication",
-                    subtitle = "Verify your identity with an OTP code",
-                    iconTint = PrimaryBlue,
-                    checked = is2FAEnabled
-                ) { enabled ->
-                    is2FAEnabled = enabled
-                    tokenManager.set2FAEnabled(enabled)
-                    Toast.makeText(context, "2FA ${if (enabled) "Enabled" else "Disabled"}", Toast.LENGTH_SHORT).show()
-                }
-
-                HorizontalDivider(color = DividerGrey, modifier = Modifier.padding(start = 56.dp))
-
                 SettingsToggleRow(
                     icon = Icons.Default.Fingerprint,
                     title = "Fingerprint Login",
@@ -155,16 +140,6 @@ fun SecuritySettingsScreen(
                 HorizontalDivider(color = DividerGrey, modifier = Modifier.padding(start = 56.dp))
                 SettingsRow(Icons.Default.History, "Security Logs", "View recent login attempts", TextSecondary) {
                     Toast.makeText(context, "Cloud sync required for this feature", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // ── Recovery ──
-            SettingsSectionHeader("Recovery")
-            SettingsCard {
-                SettingsRow(Icons.Default.Backup, "Recovery Codes", "Generate backup codes for 2FA", WarningOrange) {
-                    Toast.makeText(context, "Feature coming soon", Toast.LENGTH_SHORT).show()
                 }
             }
 

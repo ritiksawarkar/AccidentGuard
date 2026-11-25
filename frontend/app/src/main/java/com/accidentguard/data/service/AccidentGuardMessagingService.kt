@@ -16,6 +16,7 @@ import com.accidentguard.data.local.TokenManager
 import com.accidentguard.data.model.FcmTokenRequest
 import com.accidentguard.ui.notification.NotificationHelper
 import com.accidentguard.ui.notification.RingtonePlayer
+import com.accidentguard.data.service.CallService
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 import kotlinx.coroutines.CoroutineScope
@@ -104,7 +105,13 @@ class AccidentGuardMessagingService : FirebaseMessagingService() {
                     body
                 }
 
-            sendNotification(title, finalBody)
+            val helper = NotificationHelper(applicationContext)
+            helper.showNotification(
+                title = title,
+                message = finalBody,
+                isCritical = true,
+                navigateTo = if (TokenManager(applicationContext).isHospital()) "hospital_dashboard" else "dashboard"
+            )
             return
         }
 
@@ -116,7 +123,13 @@ class AccidentGuardMessagingService : FirebaseMessagingService() {
             val body = remoteMessage.data["body"]
                 ?: "A crash has been detected."
 
-            sendNotification(title, body)
+            val helper = NotificationHelper(applicationContext)
+            helper.showNotification(
+                title = title,
+                message = body,
+                isCritical = true,
+                navigateTo = if (TokenManager(applicationContext).isHospital()) "hospital_dashboard" else "dashboard"
+            )
         }
     }
 
@@ -300,59 +313,4 @@ class AccidentGuardMessagingService : FirebaseMessagingService() {
         }
     }
 
-    // ---------------------------------------------------------
-    // STANDARD NOTIFICATION DISPLAY
-    // ---------------------------------------------------------
-
-    private fun sendNotification(
-        title: String,
-        messageBody: String
-    ) {
-        val intent = Intent(
-            this,
-            MainActivity::class.java
-        ).apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        }
-
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            0,
-            intent,
-            PendingIntent.FLAG_IMMUTABLE or
-                    PendingIntent.FLAG_ONE_SHOT
-        )
-
-        val notificationBuilder =
-            NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_emergency)
-                .setContentTitle(title)
-                .setContentText(messageBody)
-                .setAutoCancel(true)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setDefaults(NotificationCompat.DEFAULT_ALL)
-                .setContentIntent(pendingIntent)
-
-        val notificationManager =
-            getSystemService(Context.NOTIFICATION_SERVICE)
-                    as NotificationManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Accident Alerts",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description =
-                    "Notifications for crash detection and emergency responses"
-            }
-
-            notificationManager.createNotificationChannel(channel)
-        }
-
-        notificationManager.notify(
-            System.currentTimeMillis().toInt(),
-            notificationBuilder.build()
-        )
-    }
 }

@@ -236,7 +236,7 @@ fun LiveLocationScreen(
                         }
                     }
 
-                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = DividerGrey)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = DividerGrey)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),

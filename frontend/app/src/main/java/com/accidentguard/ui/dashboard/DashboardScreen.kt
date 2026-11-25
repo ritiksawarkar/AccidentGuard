@@ -57,20 +57,26 @@ fun DashboardScreen(
             TopAppBar(
                 title = {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Shield, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(28.dp))
+                        Icon(Icons.Default.Shield, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("AccidentGuard", fontWeight = FontWeight.Bold, color = PrimaryBlue)
+                        Text("AccidentGuard", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 },
                 actions = {
-                    IconButton(onClick = { navController.navigate(Screen.CrashAlert.route) }) {
+                    IconButton(
+                        onClick = { navController.navigate(Screen.CrashAlert.route) },
+                        modifier = Modifier.size(48.dp)
+                    ) {
                         Icon(Icons.Default.Warning, contentDescription = "Simulate Crash", tint = DangerRed)
                     }
-                    IconButton(onClick = { navController.navigate(Screen.Settings.route) }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = Color.Gray)
+                    IconButton(
+                        onClick = { navController.navigate(Screen.Settings.route) },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(Icons.Default.Settings, contentDescription = "Settings", tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         },
         bottomBar = { BottomNavigationBar(navController = navController) }
@@ -79,14 +85,14 @@ fun DashboardScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .background(BackgroundLight)
+                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             // 1. Welcome Card
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryBlue),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -100,22 +106,22 @@ fun DashboardScreen(
                         Text(
                             text = "Good Morning,",
                             fontSize = 14.sp,
-                            color = Color.White.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
                         )
                         Text(
                             text = state.userName,
                             fontSize = 24.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Surface(
-                            color = Color.White.copy(alpha = 0.2f),
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             Text(
                                 text = "Vehicle: ${state.vehicleName} • 🟢 Connected",
-                                color = Color.White,
+                                color = MaterialTheme.colorScheme.onPrimary,
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Medium,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -127,10 +133,10 @@ fun DashboardScreen(
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)
-                            .background(Color.White.copy(alpha = 0.2f)),
+                            .background(MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                        Icon(Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(36.dp))
                     }
                 }
             }
@@ -176,46 +182,46 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             // 3. Real-time Telemetry Grid
-            Text("Vehicle Status & Sensors", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Vehicle Status & Sensors", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(modifier = Modifier.fillMaxWidth()) {
                 // Speed Card
                 Card(
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 6.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Speed, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Speed, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Current Speed", fontSize = 12.sp, color = TextSecondary)
+                            Text("Current Speed", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("${state.speedKmh.toInt()} km/h", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text("${state.speedKmh.toInt()} km/h", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
 
                 // Distance Card
                 Card(
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 6.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Sensors, contentDescription = null, tint = SecondaryTeal, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.Sensors, contentDescription = null, tint = MaterialTheme.colorScheme.secondary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Obstacle Dist.", fontSize = 12.sp, color = TextSecondary)
+                            Text("Obstacle Dist.", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.Bottom) {
-                            Text("${state.obstacleDistanceCm.toInt()} cm", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                            Text("${state.obstacleDistanceCm.toInt()} cm", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(state.obstacleStatus, fontSize = 11.sp, color = SafeGreen, fontWeight = FontWeight.Bold)
                         }
@@ -229,7 +235,7 @@ fun DashboardScreen(
                 // GPS Status Card
                 Card(
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     modifier = Modifier
                         .weight(1f)
                         .padding(end = 6.dp)
@@ -238,7 +244,7 @@ fun DashboardScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.GpsFixed, contentDescription = null, tint = SafeGreen, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("GPS Signal", fontSize = 12.sp, color = TextSecondary)
+                            Text("GPS Signal", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(state.gpsStatus, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = SafeGreen)
@@ -248,19 +254,19 @@ fun DashboardScreen(
                 // Battery Card
                 Card(
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 6.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.BatteryStd, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                            Icon(Icons.Default.BatteryStd, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Vehicle Battery", fontSize = 12.sp, color = TextSecondary)
+                            Text("Vehicle Battery", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("${state.batteryPercent}%", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text("${state.batteryPercent}%", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -268,7 +274,7 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // 4. Quick Actions
-            Text("Quick Actions", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Quick Actions", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Spacer(modifier = Modifier.height(10.dp))
 
             Column {
@@ -286,12 +292,12 @@ fun DashboardScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // 5. Today's Driving Statistics Card
-            Text("Today's Driving Statistics", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text("Today's Driving Statistics", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onBackground)
             Spacer(modifier = Modifier.height(10.dp))
 
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceCard),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -302,7 +308,7 @@ fun DashboardScreen(
                         StatItem("Distance", "${state.distanceTodayKm} km", Icons.Default.Navigation)
                         StatItem("Driving Time", "${state.drivingTimeMin} min", Icons.Default.AccessTime)
                     }
-                    Divider(modifier = Modifier.padding(vertical = 12.dp), color = DividerGrey)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -326,11 +332,15 @@ fun QuickActionCard(
 ) {
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-        modifier = modifier.clickable { navController.navigate(item.route) }
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = modifier
+            .heightIn(min = 72.dp)
+            .clickable { navController.navigate(item.route) }
     ) {
         Row(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier
+                .padding(14.dp)
+                .fillMaxHeight(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -344,8 +354,8 @@ fun QuickActionCard(
             }
             Spacer(modifier = Modifier.width(10.dp))
             Column {
-                Text(item.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                Text(item.subtitle, fontSize = 11.sp, color = TextSecondary)
+                Text(item.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                Text(item.subtitle, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     }
@@ -353,20 +363,23 @@ fun QuickActionCard(
 
 @Composable
 fun StatItem(label: String, value: String, icon: ImageVector) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Box(
             modifier = Modifier
                 .size(36.dp)
                 .clip(CircleShape)
-                .background(PrimaryBlue.copy(alpha = 0.1f)),
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
             contentAlignment = Alignment.Center
         ) {
-            Icon(icon, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
         }
         Spacer(modifier = Modifier.width(10.dp))
         Column {
-            Text(label, fontSize = 12.sp, color = TextSecondary)
-            Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+            Text(label, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }

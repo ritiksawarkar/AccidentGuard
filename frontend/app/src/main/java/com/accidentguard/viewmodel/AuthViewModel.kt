@@ -18,7 +18,6 @@ sealed class AuthUiState {
     object Idle : AuthUiState()
     object Loading : AuthUiState()
     data class Success(val message: String, val role: String = "user") : AuthUiState()
-    data class Requires2FA(val email: String, val role: String) : AuthUiState()
     data class Error(val message: String) : AuthUiState()
 }
 
@@ -30,7 +29,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow<AuthUiState>(AuthUiState.Idle)
     val uiState: StateFlow<AuthUiState> = _uiState
 
-    fun login(email: String, pass: String) {
+    fun login(email: String, pass: String, role: String) {
         if (email.isBlank() || pass.isBlank()) {
             _uiState.value = AuthUiState.Error("Please enter both email and password")
             return
@@ -38,24 +37,15 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
         viewModelScope.launch {
             _uiState.value = AuthUiState.Loading
-            val is2FAEnabledLocally = tokenManager.is2FAEnabled()
 
-            when (val result = repo.loginUnified(email.trim(), pass)) {
+            when (val result = repo.loginUnified(email.trim(), pass, role)) {
                 is UnifiedLoginResult.UserSuccess -> {
-                    if (is2FAEnabledLocally) {
-                        _uiState.value = AuthUiState.Requires2FA(email, "user")
-                    } else {
-                        completeUserLogin(result)
-                        notificationHelper.showNotification("Login Success", "Welcome back to Accident Guard!")
-                    }
+                    completeUserLogin(result)
+                    notificationHelper.showNotification("Login Success", "Welcome back to Accident Guard!")
                 }
                 is UnifiedLoginResult.HospitalSuccess -> {
-                    if (is2FAEnabledLocally) {
-                        _uiState.value = AuthUiState.Requires2FA(email, "hospital")
-                    } else {
-                        completeHospitalLogin(result)
-                        notificationHelper.showNotification("Hospital Login", "Emergency unit connected successfully.")
-                    }
+                    completeHospitalLogin(result)
+                    notificationHelper.showNotification("Hospital Login", "Emergency unit connected successfully.")
                 }
                 is UnifiedLoginResult.Error -> {
                     _uiState.value = AuthUiState.Error(result.message)
@@ -103,28 +93,6 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
-    }
-
-    fun verifyOtp(email: String, otp: String, role: String) {
-        if (otp.length < 4) {
-            _uiState.value = AuthUiState.Error("Please enter a valid 6-digit code")
-            return
-        }
-
-        _uiState.value = AuthUiState.Loading
-        viewModelScope.launch {
-            if (otp == "123456" || otp == "000000") {
-                _uiState.value = AuthUiState.Success("2FA Verified Successfully", role = role)
-                notificationHelper.showNotification("Security Verified", "Identity confirmed via 2FA.")
-            } else {
-                _uiState.value = AuthUiState.Error("Invalid verification code. Try 123456.")
-            }
-        }
-    }
-
-    fun resendOtp(email: String) {
-        _uiState.value = AuthUiState.Idle
-        notificationHelper.showNotification("Security", "A new code has been sent to your email.")
     }
 
     fun registerUser(fullName: String, email: String, phone: String, pass: String, confirmPass: String, termsAccepted: Boolean) {

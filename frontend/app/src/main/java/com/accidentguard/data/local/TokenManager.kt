@@ -37,7 +37,6 @@ class TokenManager(context: Context) {
 
         // Security Settings
         private const val KEY_BIOMETRIC_ENABLED = "biometric_enabled"
-        private const val KEY_2FA_ENABLED = "two_fa_enabled"
         private const val KEY_LAST_LOGIN_TIME = "last_login_time"
     }
 
@@ -263,20 +262,6 @@ class TokenManager(context: Context) {
     fun setBiometricEnabled(enabled: Boolean) {
         prefs.edit()
             .putBoolean(KEY_BIOMETRIC_ENABLED, enabled)
-            .apply()
-    }
-
-    // --------------------------------------------------
-    // TWO-FACTOR AUTHENTICATION
-    // --------------------------------------------------
-
-    fun is2FAEnabled(): Boolean {
-        return prefs.getBoolean(KEY_2FA_ENABLED, false)
-    }
-
-    fun set2FAEnabled(enabled: Boolean) {
-        prefs.edit()
-            .putBoolean(KEY_2FA_ENABLED, enabled)
             .apply()
     }
 

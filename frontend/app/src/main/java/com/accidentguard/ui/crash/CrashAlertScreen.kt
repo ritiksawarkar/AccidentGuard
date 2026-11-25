@@ -157,7 +157,7 @@ fun CrashAlertScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        Divider(color = DividerGrey)
+                        HorizontalDivider(color = DividerGrey)
 
                         Spacer(modifier = Modifier.height(16.dp))
 

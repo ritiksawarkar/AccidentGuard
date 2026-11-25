@@ -121,17 +121,20 @@ class NotificationHelper(private val context: Context) {
         manager.cancel(sessionId)
     }
 
-    fun showNotification(title: String, message: String, isCritical: Boolean = false) {
+    fun showNotification(title: String, message: String, isCritical: Boolean = false, navigateTo: String? = null) {
         val channelId = if (isCritical) SAFETY_CHANNEL_ID else GENERAL_CHANNEL_ID
         val priority = if (isCritical) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_DEFAULT
 
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            if (navigateTo != null) {
+                putExtra("navigate_to", navigateTo)
+            }
         }
 
         val pendingIntent = PendingIntent.getActivity(
-            context, 0, intent,
-            PendingIntent.FLAG_IMMUTABLE
+            context, System.currentTimeMillis().toInt(), intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         val builder = NotificationCompat.Builder(context, channelId)

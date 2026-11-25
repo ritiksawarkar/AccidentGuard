@@ -25,6 +25,15 @@ class HospitalRepository {
             if (response.isSuccessful && response.body()?.success == true) {
                 val data = response.body()?.data ?: emptyList()
                 android.util.Log.d("HospitalRepository", "getAlerts: Success. Received ${data.size} alerts")
+                
+                // DIAGNOSTIC LOGGING - Safe for production as it doesn't log PII
+                if (data.isNotEmpty()) {
+                    val first = data[0]
+                    android.util.Log.d("HospitalRepository", "DIAGNOSTIC: ID=${first.id}, Status=${first.status}, Victim=${first.victim.userName}")
+                } else {
+                    android.util.Log.d("HospitalRepository", "DIAGNOSTIC: Alert list is EMPTY")
+                }
+
                 Result.success(data)
             } else {
                 android.util.Log.e("HospitalRepository", "getAlerts: API Error: HTTP ${response.code()}")

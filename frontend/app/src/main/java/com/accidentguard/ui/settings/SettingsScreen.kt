@@ -150,7 +150,7 @@ fun SettingsScreen(
                 SettingsRow(
                     icon = Icons.Default.Security,
                     title = "Security Dashboard",
-                    subtitle = "2FA, Biometrics, and Privacy",
+                    subtitle = "Biometrics and Privacy",
                     iconTint = SafeGreen
                 ) {
                     navController.navigate(Screen.SecuritySettings.route)

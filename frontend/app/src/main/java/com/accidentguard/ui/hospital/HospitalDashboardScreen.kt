@@ -3,6 +3,8 @@ package com.accidentguard.ui.hospital
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,34 +12,34 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
-import androidx.compose.material.icons.filled.AssignmentTurnedIn
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.LocalShipping
-import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Schedule
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.accidentguard.data.local.TokenManager
 import com.accidentguard.data.model.EmergencyAlert
 import com.accidentguard.data.model.HospitalStats
 import com.accidentguard.ui.navigation.Screen
 import com.accidentguard.ui.theme.*
 import com.accidentguard.viewmodel.HospitalUiState
 import com.accidentguard.viewmodel.HospitalViewModel
+
+enum class HospitalTab {
+    HOME, ALERTS, AMBULANCE, PATIENTS, PROFILE
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,11 +52,11 @@ fun HospitalDashboardScreen(
     val stats by viewModel.stats.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
 
+    var currentTab by remember { mutableStateOf(HospitalTab.HOME) }
     var showCustomDispatchDialog by remember { mutableStateOf<EmergencyAlert?>(null) }
     var showFleetManageDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // Loading overlay for critical actions (dispatch/admit)
     val isActionLoading = uiState is HospitalUiState.ActionLoading
 
     LaunchedEffect(uiState) {
@@ -73,145 +75,62 @@ fun HospitalDashboardScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = viewModel.tokenManager.getUserName().ifBlank { "Hospital Emergency Care" },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Hospital Operations Center • ${viewModel.tokenManager.getHospitalCity()}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.8f)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.loadDashboard(isUserInitiated = true) }) {
-                        if (uiState is HospitalUiState.Loading) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Color.White)
-                        }
-                    }
-                    IconButton(onClick = { showLogoutDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout", tint = Color.White)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryBlueDark)
+            HospitalTopAppBar(
+                hospitalName = viewModel.tokenManager.getUserName().ifBlank { "Emergency Ops Center" },
+                hospitalCity = viewModel.tokenManager.getHospitalCity(),
+                isRefreshing = uiState is HospitalUiState.Loading,
+                currentTab = currentTab,
+                onRefresh = { viewModel.loadDashboard(isUserInitiated = true) },
+                onLogout = { showLogoutDialog = true }
+            )
+        },
+        bottomBar = {
+            HospitalBottomNavigation(
+                currentTab = currentTab,
+                onTabSelected = { currentTab = it }
             )
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-            Column(modifier = Modifier.fillMaxSize().background(BackgroundLight)) {
+            Column(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
                 
-                // Dashboard Summary Header
-                HospitalSummaryBanner(
-                    stats = stats,
-                    onManageFleet = { showFleetManageDialog = true }
-                )
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    item {
-                        Text(
-                            text = "Active Emergency Incidents",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                Crossfade(targetState = currentTab, label = "TabTransition") { tab ->
+                    when (tab) {
+                        HospitalTab.HOME -> HomeDashboardContent(
+                            stats = stats,
+                            alerts = alerts,
+                            onManageFleet = { showFleetManageDialog = true },
+                            onCallVictim = { phone -> callPhone(context, phone) },
+                            onOpenMap = { lat, lng -> openMap(context, lat, lng) },
+                            onDirectDispatch = { id -> viewModel.directDispatchAmbulance(id) },
+                            onCustomDispatch = { alert -> showCustomDispatchDialog = alert },
+                            onAdmit = { id -> viewModel.admitPatient(id) },
+                            onViewAll = { currentTab = HospitalTab.ALERTS },
+                            isLoading = uiState is HospitalUiState.Loading
                         )
-                    }
-
-                    if (alerts.isEmpty() && uiState !is HospitalUiState.Loading) {
-                        item { EmptyIncidentsState() }
-                    } else {
-                        items(alerts, key = { it.id }) { alert ->
-                            HospitalAlertCard(
-                                alert = alert,
-                                onCallVictim = { phone ->
-                                    if (phone.isNotBlank() && phone != "N/A") {
-                                        try {
-                                            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            Toast.makeText(context, "Cannot open dialer", Toast.LENGTH_SHORT).show()
-                                        }
-                                    } else {
-                                        Toast.makeText(context, "Victim phone number unavailable", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                onOpenMap = { lat, lng ->
-                                    if (lat != 0.0 && lng != 0.0) {
-                                        try {
-                                            val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng(Accident+Location)")
-                                            val intent = Intent(Intent.ACTION_VIEW, uri)
-                                            context.startActivity(intent)
-                                        } catch (e: Exception) {
-                                            Toast.makeText(context, "Cannot open maps app", Toast.LENGTH_SHORT).show()
-                                        }
-                                    } else {
-                                        Toast.makeText(context, "Accident location unknown", Toast.LENGTH_SHORT).show()
-                                    }
-                                },
-                                onDirectDispatch = { viewModel.directDispatchAmbulance(alert.id) },
-                                onCustomDispatch = { showCustomDispatchDialog = alert },
-                                onAdmit = { viewModel.admitPatient(alert.id) }
-                            )
-                        }
+                        HospitalTab.ALERTS -> HospitalAlertsScreen(navController, viewModel, alerts)
+                        HospitalTab.AMBULANCE -> FleetContent(stats, onManageFleet = { showFleetManageDialog = false })
+                        HospitalTab.PATIENTS -> PatientsContent(stats)
+                        HospitalTab.PROFILE -> ProfileContent(viewModel.tokenManager)
                     }
                 }
             }
 
-            // Action Loading Overlay
             if (isActionLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(12.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(color = PrimaryBlue, strokeWidth = 4.dp)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text("Processing Action...", fontWeight = FontWeight.Bold, color = TextPrimary)
-                            Text("Updating operations center...", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-                        }
-                    }
-                }
+                ActionLoadingOverlay()
             }
 
-            // ── Custom Dispatch Ambulance Dialog ──
             showCustomDispatchDialog?.let { alert ->
                 CustomDispatchAmbulanceDialog(
                     alert = alert,
                     onDismiss = { showCustomDispatchDialog = null },
                     onConfirm = { ambNo, driverName, driverPhone, eta, notes ->
-                        viewModel.dispatchAmbulance(
-                            alertId = alert.id,
-                            ambulanceNumber = ambNo,
-                            driverName = driverName,
-                            driverPhone = driverPhone,
-                            etaMinutes = eta,
-                            notes = notes
-                        )
+                        viewModel.dispatchAmbulance(alert.id, ambNo, driverName, driverPhone, eta, notes)
                         showCustomDispatchDialog = null
                     }
                 )
             }
 
-            // ── Fleet Management Dialog ──
             if (showFleetManageDialog) {
                 FleetManageDialog(
                     stats = stats,
@@ -223,31 +142,248 @@ fun HospitalDashboardScreen(
                 )
             }
 
-            // ── Logout Confirmation Dialog ──
             if (showLogoutDialog) {
-                AlertDialog(
-                    onDismissRequest = { showLogoutDialog = false },
-                    title = { Text("Operations Logout") },
-                    text = { Text("Are you sure you want to disconnect this hospital session? You will stop receiving live alerts.") },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                viewModel.logout()
-                                showLogoutDialog = false
-                                navController.navigate(Screen.Login.route) {
-                                    popUpTo(0) { inclusive = true }
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
-                        ) {
-                            Text("Disconnect")
+                LogoutConfirmationDialog(
+                    onConfirm = {
+                        viewModel.logout()
+                        showLogoutDialog = false
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
                         }
                     },
-                    dismissButton = {
-                        TextButton(onClick = { showLogoutDialog = false }) {
-                            Text("Stay Connected")
-                        }
+                    onDismiss = { showLogoutDialog = false }
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HospitalTopAppBar(
+    hospitalName: String,
+    hospitalCity: String,
+    isRefreshing: Boolean,
+    currentTab: HospitalTab,
+    onRefresh: () -> Unit,
+    onLogout: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            if (currentTab == HospitalTab.ALERTS) {
+                Text(
+                    text = "Emergency Alerts",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+            } else {
+                Column {
+                    Text(
+                        text = hospitalName,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            Icons.Default.LocalHospital, 
+                            contentDescription = null, 
+                            modifier = Modifier.size(10.dp),
+                            tint = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "$hospitalCity • Status: Online",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                        )
                     }
+                }
+            }
+        },
+        actions = {
+            IconButton(onClick = onRefresh) {
+                if (isRefreshing) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = MaterialTheme.colorScheme.onPrimary)
+                }
+            }
+            IconButton(onClick = onLogout) {
+                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = "Logout", tint = MaterialTheme.colorScheme.onPrimary)
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
+    )
+}
+
+@Composable
+fun HospitalBottomNavigation(
+    currentTab: HospitalTab,
+    onTabSelected: (HospitalTab) -> Unit
+) {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        tonalElevation = 8.dp
+    ) {
+        val items = listOf(
+            Triple(HospitalTab.HOME, "Home", Icons.Default.Home),
+            Triple(HospitalTab.ALERTS, "Alerts", Icons.Default.Notifications),
+            Triple(HospitalTab.AMBULANCE, "Fleet", Icons.Default.LocalShipping),
+            Triple(HospitalTab.PATIENTS, "Patients", Icons.Default.People),
+            Triple(HospitalTab.PROFILE, "Profile", Icons.Default.Person)
+        )
+
+        items.forEach { (tab, label, icon) ->
+            NavigationBarItem(
+                selected = currentTab == tab,
+                onClick = { onTabSelected(tab) },
+                icon = { Icon(icon, contentDescription = label) },
+                label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.primary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                )
+            )
+        }
+    }
+}
+
+@Composable
+fun HomeDashboardContent(
+    stats: HospitalStats?,
+    alerts: List<EmergencyAlert>,
+    onManageFleet: () -> Unit,
+    onCallVictim: (String) -> Unit,
+    onOpenMap: (Double, Double) -> Unit,
+    onDirectDispatch: (Long) -> Unit,
+    onCustomDispatch: (EmergencyAlert) -> Unit,
+    onAdmit: (Long) -> Unit,
+    onViewAll: () -> Unit,
+    isLoading: Boolean
+) {
+    val activeAlerts = alerts.filter { it.status.equals("PENDING", true) || it.status.equals("DISPATCHED", true) }
+    val historicalAlerts = alerts.filter { it.status.equals("ADMITTED", true) || it.status.equals("CANCELLED", true) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            HospitalSummaryBanner(stats, onManageFleet)
+        }
+
+        item {
+            QuickActionsGrid(
+                onDispatch = { 
+                    activeAlerts.firstOrNull { it.status == "PENDING" }?.let { onDirectDispatch(it.id) }
+                },
+                onAlerts = onViewAll,
+                onFleet = onManageFleet,
+                onPatients = { /* Navigate or show stats */ }
+            )
+        }
+
+        // --- ACTIVE INCIDENTS SECTION ---
+        item {
+            SectionHeader(
+                title = "Active Emergencies",
+                count = activeAlerts.size,
+                countLabel = "Active",
+                accentColor = DangerRed
+            )
+        }
+
+        if (activeAlerts.isEmpty() && !isLoading) {
+            item { EmptyActiveIncidentsState() }
+        } else {
+            items(activeAlerts, key = { "active_${it.id}" }) { alert ->
+                HospitalAlertCard(
+                    alert = alert,
+                    onCallVictim = onCallVictim,
+                    onOpenMap = onOpenMap,
+                    onDirectDispatch = { onDirectDispatch(alert.id) },
+                    onCustomDispatch = { onCustomDispatch(alert) },
+                    onAdmit = { onAdmit(alert.id) }
+                )
+            }
+        }
+
+        // --- RECENT HISTORY SECTION ---
+        if (historicalAlerts.isNotEmpty()) {
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SectionHeader(
+                        title = "Recent History",
+                        count = historicalAlerts.size,
+                        countLabel = "Past",
+                        accentColor = TextSecondary
+                    )
+                    TextButton(
+                        onClick = onViewAll,
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                    ) {
+                        Text("View All", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+
+            items(historicalAlerts.take(5), key = { "history_${it.id}" }) { alert ->
+                HospitalAlertCard(
+                    alert = alert,
+                    onCallVictim = onCallVictim,
+                    onOpenMap = onOpenMap,
+                    onDirectDispatch = { },
+                    onCustomDispatch = { },
+                    onAdmit = { }
+                )
+            }
+        } else if (historicalAlerts.isEmpty() && !isLoading) {
+            item {
+                Box(modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
+                    Text("No incident history available", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                }
+            }
+        }
+        
+        item { Spacer(modifier = Modifier.height(32.dp)) }
+    }
+}
+
+@Composable
+fun SectionHeader(title: String, count: Int, countLabel: String, accentColor: Color) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        if (count > 0) {
+            Surface(
+                color = accentColor.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text(
+                    text = "$count $countLabel",
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = accentColor,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -259,10 +395,11 @@ fun HospitalSummaryBanner(
     stats: HospitalStats?,
     onManageFleet: () -> Unit
 ) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 4.dp,
-        modifier = Modifier.fillMaxWidth()
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -273,100 +410,107 @@ fun HospitalSummaryBanner(
                 Column {
                     Text(
                         text = "FLEET STATUS",
-                        style = MaterialTheme.typography.labelMedium,
+                        style = MaterialTheme.typography.labelSmall,
                         color = TextSecondary,
-                        fontWeight = FontWeight.ExtraBold
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp
                     )
                     Text(
-                        text = "${stats?.availableAmbulances ?: 0} / ${stats?.totalAmbulances ?: 0} Units Ready",
+                        text = "${stats?.availableAmbulances ?: 0} Units Ready",
                         style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue
+                        fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
-                IconButton(
-                    onClick = onManageFleet,
-                    modifier = Modifier.background(PrimaryBlue.copy(alpha = 0.1f), CircleShape)
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
+                        .clickable { onManageFleet() },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Default.Settings, contentDescription = "Manage Fleet", tint = PrimaryBlue)
+                    Icon(Icons.Default.Settings, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                SummaryChip(
-                    label = "Pending", 
-                    count = stats?.pendingEmergencies ?: 0, 
-                    color = DangerRed,
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryChip(
-                    label = "En Route", 
-                    count = stats?.activeDispatches ?: 0, 
-                    color = WarningOrange,
-                    modifier = Modifier.weight(1f)
-                )
-                SummaryChip(
-                    label = "Admitted", 
-                    count = stats?.admittedPatients ?: 0, 
-                    color = SafeGreen,
-                    modifier = Modifier.weight(1f)
-                )
+                StatItem(label = "Pending", value = stats?.pendingEmergencies ?: 0, color = DangerRed, modifier = Modifier.weight(1f))
+                StatItem(label = "En Route", value = stats?.activeDispatches ?: 0, color = WarningOrange, modifier = Modifier.weight(1f))
+                StatItem(label = "Admitted", value = stats?.admittedPatients ?: 0, color = SafeGreen, modifier = Modifier.weight(1f))
             }
         }
     }
 }
 
 @Composable
-fun SummaryChip(label: String, count: Int, color: Color, modifier: Modifier = Modifier) {
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = color.copy(alpha = 0.1f),
-        modifier = modifier.height(36.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Box(modifier = Modifier.size(6.dp).background(color, CircleShape))
-            Spacer(modifier = Modifier.width(6.dp))
-            Text(
-                text = "$count $label", 
-                color = color, 
-                style = MaterialTheme.typography.labelSmall, 
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-fun EmptyIncidentsState() {
+fun StatItem(label: String, value: Int, color: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 64.dp),
+        modifier = modifier
+            .background(color.copy(alpha = 0.05f), RoundedCornerShape(12.dp))
+            .padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(SafeGreen.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SafeGreen, modifier = Modifier.size(48.dp))
-        }
-        Spacer(modifier = Modifier.height(20.dp))
-        Text("No Active Incidents", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-        Text("System status: Standby. All calls handled.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        Text(
+            text = value.toString(),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Black,
+            color = color
+        )
+        Text(
+            text = label.uppercase(),
+            style = MaterialTheme.typography.labelSmall,
+            fontSize = 9.sp,
+            fontWeight = FontWeight.Bold,
+            color = TextSecondary
+        )
     }
 }
 
 @Composable
-private fun HospitalAlertCard(
+fun QuickActionsGrid(
+    onDispatch: () -> Unit,
+    onAlerts: () -> Unit,
+    onFleet: () -> Unit,
+    onPatients: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        QuickActionItem("Dispatch", Icons.Default.FlashOn, DangerRed, onDispatch, Modifier.weight(1f))
+        QuickActionItem("Alerts", Icons.Default.Warning, WarningOrange, onAlerts, Modifier.weight(1f))
+        QuickActionItem("Fleet", Icons.Default.LocalShipping, PrimaryBlue, onFleet, Modifier.weight(1f))
+        QuickActionItem("Patients", Icons.Default.History, SafeGreen, onPatients, Modifier.weight(1f))
+    }
+}
+
+@Composable
+fun QuickActionItem(label: String, icon: ImageVector, color: Color, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        color = color.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier.padding(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(label, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+        }
+    }
+}
+
+@Composable
+fun HospitalAlertCard(
     alert: EmergencyAlert,
     onCallVictim: (String) -> Unit,
     onOpenMap: (Double, Double) -> Unit,
@@ -376,8 +520,7 @@ private fun HospitalAlertCard(
 ) {
     val isPending = alert.status.equals("PENDING", ignoreCase = true)
     val isDispatched = alert.status.equals("DISPATCHED", ignoreCase = true)
-    val isAdmitted = alert.status.equals("ADMITTED", ignoreCase = true)
-
+    
     val statusColor = when {
         isPending -> DangerRed
         isDispatched -> WarningOrange
@@ -387,203 +530,419 @@ private fun HospitalAlertCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceCard),
-        elevation = CardDefaults.cardElevation(4.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(2.dp),
+        border = BorderStroke(1.dp, if (isPending) DangerRed.copy(alpha = 0.2f) else Color.Transparent)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header: Status & Impact
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(6.dp),
                     color = statusColor.copy(alpha = 0.1f)
                 ) {
-                    Text(
-                        text = when {
-                            isPending -> "🚨 PENDING DISPATCH"
-                            isDispatched -> "🚑 AMBULANCE EN ROUTE"
-                            else -> "✅ PATIENT ADMITTED"
-                        },
-                        color = statusColor,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(8.dp),
-                    color = Color(0xFFF3E5F5)
-                ) {
-                    Text(
-                        text = "⚡ ${alert.impactG}G Impact",
-                        color = Color(0xFF7B1FA2),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Severity description
-            Text(
-                text = alert.damageSeverity,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = if (isPending) DangerRed else TextPrimary
-            )
-
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = DividerGrey.copy(alpha = 0.5f))
-
-            // Victim & Vehicle Details
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("👤 VICTIM INFO", fontSize = 10.sp, color = TextSecondary, fontWeight = FontWeight.Bold)
-                    Text(alert.victim.userName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    Text(alert.victim.userPhone, fontSize = 12.sp, color = PrimaryBlue, modifier = Modifier.clickable { onCallVictim(alert.victim.userPhone) })
-                }
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("🚗 VEHICLE", fontSize = 10.sp, color = TextSecondary, fontWeight = FontWeight.Bold)
-                    Text(alert.victim.vehicleName, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
-                    Text(alert.victim.vehicleNumber, fontSize = 12.sp, color = TextSecondary)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Time and Coordinates
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Schedule,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = TextSecondary
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "${alert.dateStr}, ${alert.timeStr}",
-                    fontSize = 11.sp,
-                    color = TextSecondary
-                )
-                Spacer(modifier = Modifier.weight(1f))
-                Icon(
-                    imageVector = Icons.Default.Map,
-                    contentDescription = null,
-                    modifier = Modifier.size(14.dp),
-                    tint = TextSecondary
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "${String.format("%.4f", alert.latitude)}, ${String.format("%.4f", alert.longitude)}",
-                    fontSize = 11.sp,
-                    color = TextSecondary
-                )
-            }
-
-            // Dispatched ambulance info
-            if (isDispatched && !alert.ambulanceNumber.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = WarningOrange.copy(alpha = 0.1f),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("🚑", fontSize = 20.sp)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                "Unit: ${alert.ambulanceNumber} • ETA: ${alert.etaMinutes ?: 8}m",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
-                                color = WarningOrange
-                            )
-                            Text(
-                                "Driver: ${alert.driverName ?: "Emergency Unit"} (${alert.driverPhone ?: "108"})",
-                                fontSize = 11.sp,
-                                color = WarningOrange.copy(alpha = 0.8f)
-                            )
-                        }
+                        Box(modifier = Modifier.size(6.dp).background(statusColor, CircleShape))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (isPending) "PRIORITY ALERT" else alert.status.uppercase(),
+                            color = statusColor,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Black
+                        )
                     }
                 }
+
+                Text(
+                    text = alert.timeStr,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = alert.damageSeverity,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (isPending) DangerRed else MaterialTheme.colorScheme.onSurface
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                InfoBlock(
+                    label = "VICTIM",
+                    value = alert.victim.userName,
+                    subValue = alert.victim.userPhone,
+                    onSubClick = { onCallVictim(alert.victim.userPhone) },
+                    modifier = Modifier.weight(1f)
+                )
+                InfoBlock(
+                    label = "VEHICLE",
+                    value = alert.victim.vehicleName,
+                    subValue = alert.victim.vehicleNumber,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+
+            if (isDispatched && !alert.ambulanceNumber.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                AmbulanceStatusStrip(alert)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                OutlinedButton(
-                    onClick = { onCallVictim(alert.victim.userPhone) },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Icon(Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Call Victim", fontSize = 12.sp)
-                }
-
                 OutlinedButton(
                     onClick = { onOpenMap(alert.latitude, alert.longitude) },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(0.dp)
                 ) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Map, contentDescription = null, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Live Map", fontSize = 12.sp)
                 }
-            }
 
-            if (isPending || isDispatched) {
-                Spacer(modifier = Modifier.height(12.dp))
-                
                 if (isPending) {
                     Button(
                         onClick = onDirectDispatch,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(2f),
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
                     ) {
-                        Icon(Icons.Default.LocalShipping, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("DIRECT DISPATCH NOW", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Icon(Icons.Default.FlashOn, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("DISPATCH NOW", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     }
-                    
-                    TextButton(
-                        onClick = onCustomDispatch,
-                        modifier = Modifier.align(Alignment.CenterHorizontally)
-                    ) {
-                        Text("Assign Specific Unit (Advanced)", fontSize = 12.sp, color = PrimaryBlue)
-                    }
-                } else {
+                } else if (isDispatched) {
                     Button(
                         onClick = onAdmit,
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(2f),
+                        shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = SafeGreen)
                     ) {
-                        Icon(Icons.Default.AssignmentTurnedIn, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("MARK PATIENT ADMITTED", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        Text("MARK ADMITTED", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+            
+            if (isPending) {
+                TextButton(
+                    onClick = onCustomDispatch,
+                    modifier = Modifier.fillMaxWidth().height(32.dp)
+                ) {
+                    Text("Assign Specific Unit (Advanced)", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoBlock(label: String, value: String, subValue: String, onSubClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
+    Column(modifier = modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = TextSecondary, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(
+            text = subValue,
+            style = MaterialTheme.typography.labelSmall,
+            color = if (onSubClick != null) MaterialTheme.colorScheme.primary else TextSecondary,
+            modifier = if (onSubClick != null) Modifier.clickable { onSubClick() } else Modifier
+        )
+    }
+}
+
+@Composable
+fun AmbulanceStatusStrip(alert: EmergencyAlert) {
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = WarningOrange.copy(alpha = 0.08f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(Icons.Default.LocalShipping, contentDescription = null, tint = WarningOrange, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(10.dp))
+            Column {
+                Text(
+                    "Unit ${alert.ambulanceNumber} • ETA ${alert.etaMinutes ?: 8}m",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = WarningOrange
+                )
+                Text(
+                    "${alert.driverName ?: "Emergency Unit"} (${alert.driverPhone ?: "108"})",
+                    fontSize = 10.sp,
+                    color = WarningOrange.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun EmptyActiveIncidentsState() {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            modifier = Modifier.size(50.dp),
+            shape = CircleShape,
+            color = SafeGreen.copy(alpha = 0.1f)
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = SafeGreen, modifier = Modifier.size(28.dp))
+            }
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("No Active Incidents", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text("System in standby. Monitoring for emergencies.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+    }
+}
+
+@Composable
+fun AlertsContent(alerts: List<EmergencyAlert>) {
+    val historicalAlerts = alerts.filter { it.status.equals("ADMITTED", true) || it.status.equals("CANCELLED", true) }
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Column(modifier = Modifier.padding(bottom = 8.dp)) {
+                Text(
+                    "Emergency Audit Log",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    "Comprehensive record of all historical incidents",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+            }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        }
+
+        if (historicalAlerts.isEmpty()) {
+            item {
+                Box(
+                    modifier = Modifier.fillParentMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Default.History,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = TextSecondary.copy(alpha = 0.3f)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("No incident history available", color = TextSecondary)
+                    }
+                }
+            }
+        } else {
+            items(historicalAlerts, key = { "full_${it.id}" }) { alert ->
+                val isAdmitted = alert.status.equals("ADMITTED", true)
+                val isCancelled = alert.status.equals("CANCELLED", true)
+                val statusColor = when {
+                    isCancelled -> TextSecondary
+                    isAdmitted -> SafeGreen
+                    else -> WarningOrange
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.15f))
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                "INCIDENT #${alert.id}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = TextSecondary
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = statusColor.copy(alpha = 0.1f)
+                            ) {
+                                Text(
+                                    alert.status.uppercase(),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Black,
+                                    color = statusColor
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            alert.damageSeverity,
+                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(14.dp), tint = TextSecondary)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Victim: ${alert.victim.userName} (${alert.victim.userPhone})",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        if (!alert.ambulanceNumber.isNullOrBlank()) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.LocalShipping, contentDescription = null, modifier = Modifier.size(14.dp), tint = TextSecondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "Ambulance: ${alert.ambulanceNumber} | Driver: ${alert.driverName ?: "N/A"}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary
+                                )
+                            }
+                        }
+
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Event, contentDescription = null, modifier = Modifier.size(14.dp), tint = TextSecondary)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    "${alert.dateStr} at ${alert.timeStr}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = TextSecondary
+                                )
+                            }
+                            
+                            if (!alert.notes.isNullOrBlank()) {
+                                Text(
+                                    "Note: ${alert.notes}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1
+                                )
+                            }
+                        }
                     }
                 }
             }
         }
+        item { Spacer(modifier = Modifier.height(24.dp)) }
+    }
+}
+
+@Composable
+fun FleetContent(stats: HospitalStats?, onManageFleet: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Ambulance Fleet", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Start))
+        Spacer(modifier = Modifier.height(24.dp))
+        Icon(Icons.Default.LocalShipping, contentDescription = null, modifier = Modifier.size(80.dp), tint = PrimaryBlue.copy(alpha = 0.5f))
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("${stats?.totalAmbulances ?: 0} Total Units", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("${stats?.availableAmbulances ?: 0} Currently Available", color = SafeGreen, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(onClick = onManageFleet, modifier = Modifier.fillMaxWidth()) {
+            Text("Update Fleet Availability")
+        }
+    }
+}
+
+@Composable
+fun PatientsContent(stats: HospitalStats?) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("Admitted Patients", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Start))
+        Spacer(modifier = Modifier.height(24.dp))
+        Icon(Icons.Default.People, contentDescription = null, modifier = Modifier.size(80.dp), tint = SafeGreen.copy(alpha = 0.5f))
+        Spacer(modifier = Modifier.height(16.dp))
+        Text("${stats?.admittedPatients ?: 0} Active Admissions", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text("Recently admitted via AccidentGuard", color = TextSecondary)
+    }
+}
+
+@Composable
+fun ProfileContent(tokenManager: TokenManager) {
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Surface(modifier = Modifier.size(100.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(tokenManager.getUserName().take(1), style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(tokenManager.getUserName(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(tokenManager.getUserEmail(), color = TextSecondary)
+        Spacer(modifier = Modifier.height(32.dp))
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                ProfileInfoRow("City", tokenManager.getHospitalCity())
+                ProfileInfoRow("Address", tokenManager.getHospitalAddress())
+                ProfileInfoRow("Role", "Hospital Operations")
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileInfoRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = TextSecondary)
+        Text(value, fontWeight = FontWeight.Bold)
+    }
+}
+
+// ── Helpers ──
+
+private fun callPhone(context: android.content.Context, phone: String) {
+    if (phone.isNotBlank() && phone != "N/A") {
+        try {
+            val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone"))
+            context.startActivity(intent)
+        } catch (e: Exception) { }
+    }
+}
+
+private fun openMap(context: android.content.Context, lat: Double, lng: Double) {
+    if (lat != 0.0 && lng != 0.0) {
+        try {
+            val uri = Uri.parse("geo:$lat,$lng?q=$lat,$lng(Accident+Location)")
+            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+        } catch (e: Exception) { }
     }
 }
 
@@ -594,88 +953,39 @@ private fun CustomDispatchAmbulanceDialog(
     onConfirm: (ambNo: String, driverName: String, driverPhone: String, eta: Int, notes: String) -> Unit
 ) {
     var ambulanceNo by remember { mutableStateOf("AMB-${(alert.id % 15) + 1}") }
-    var driverName by remember { mutableStateOf("Rajesh Sharma") }
-    var driverPhone by remember { mutableStateOf("+91 9822114477") }
+    var driverName by remember { mutableStateOf("Duty Driver") }
+    var driverPhone by remember { mutableStateOf("108") }
     var etaMinutes by remember { mutableStateOf("8") }
-    var notes by remember { mutableStateOf("Emergency trauma unit ready with oxygen support") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.LocalShipping, contentDescription = null, tint = DangerRed)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Custom Unit Dispatch", fontWeight = FontWeight.Bold, fontSize = 20.sp)
-            }
-        },
+        title = { Text("Manual Dispatch", fontWeight = FontWeight.Bold) },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "Assigning for victim: ${alert.victim.userName}",
-                    fontSize = 12.sp,
-                    color = TextSecondary
-                )
-
-                OutlinedTextField(
-                    value = ambulanceNo,
-                    onValueChange = { ambulanceNo = it },
-                    label = { Text("Ambulance Number") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = driverName,
-                    onValueChange = { driverName = it },
-                    label = { Text("Driver Name") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                OutlinedTextField(value = ambulanceNo, onValueChange = { ambulanceNo = it }, label = { Text("Ambulance #") }, singleLine = true)
+                OutlinedTextField(value = driverName, onValueChange = { driverName = it }, label = { Text("Driver Name") }, singleLine = true)
                 OutlinedTextField(
                     value = driverPhone,
-                    onValueChange = { driverPhone = it },
-                    label = { Text("Driver Contact") },
+                    onValueChange = { if (it.all { char -> char.isDigit() }) driverPhone = it },
+                    label = { Text("Driver Phone") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
                 )
-
                 OutlinedTextField(
                     value = etaMinutes,
-                    onValueChange = { etaMinutes = it },
-                    label = { Text("ETA (Minutes)") },
+                    onValueChange = { if (it.all { char -> char.isDigit() }) etaMinutes = it },
+                    label = { Text("ETA (min)") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                OutlinedTextField(
-                    value = notes,
-                    onValueChange = { notes = it },
-                    label = { Text("Notes") },
-                    maxLines = 2,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    val eta = etaMinutes.toIntOrNull() ?: 8
-                    onConfirm(ambulanceNo, driverName, driverPhone, eta, notes)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = DangerRed)
-            ) {
-                Text("Confirm Dispatch")
+            Button(onClick = { onConfirm(ambulanceNo, driverName, driverPhone, etaMinutes.toIntOrNull() ?: 8, "Manual dispatch") }) {
+                Text("Dispatch")
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
     )
 }
 
@@ -690,51 +1000,71 @@ private fun FleetManageDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Settings, contentDescription = null, tint = PrimaryBlue)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Update Fleet Status", fontWeight = FontWeight.Bold)
-            }
-        },
+        title = { Text("Update Fleet Status", fontWeight = FontWeight.Bold) },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Text(
-                    "Update your hospital's total and currently ready ambulance units.",
-                    fontSize = 12.sp,
-                    color = TextSecondary
-                )
-
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = editTotal,
-                    onValueChange = { editTotal = it },
-                    label = { Text("Total Fleet Count") },
+                    onValueChange = { if (it.all { char -> char.isDigit() }) editTotal = it },
+                    label = { Text("Total Units") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-
                 OutlinedTextField(
                     value = editAvail,
-                    onValueChange = { editAvail = it },
-                    label = { Text("Available Units Now") },
+                    onValueChange = { if (it.all { char -> char.isDigit() }) editAvail = it },
+                    label = { Text("Available Now") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    val t = editTotal.toIntOrNull() ?: stats?.totalAmbulances ?: 5
-                    val a = editAvail.toIntOrNull() ?: stats?.availableAmbulances ?: 5
-                    onUpdate(t, a)
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+            Button(onClick = { onUpdate(editTotal.toIntOrNull() ?: 5, editAvail.toIntOrNull() ?: 5) }) {
+                Text("Update")
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
+}
+
+@Composable
+fun ActionLoadingOverlay() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f))
+            .clickable(enabled = false) {},
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Update Fleet")
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("Processing...", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+@Composable
+fun LogoutConfirmationDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Logout?") },
+        text = { Text("Are you sure you want to logout from the Emergency Operations Center?") },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            ) {
+                Text("Logout")
             }
         },
         dismissButton = {

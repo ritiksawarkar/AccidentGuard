@@ -1,0 +1,67 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="240dp"
+    android:height="40dp"
+    android:viewportWidth="240"
+    android:viewportHeight="40">
+
+    <!-- ACCIDENT in Brand Blue -->
+    <group android:translateX="10" android:translateY="10">
+        <!-- A -->
+        <path
+            android:fillColor="@color/brand_blue"
+            android:pathData="M0,20 L8,0 L16,20 H12.5 L10.5,15 H5.5 L3.5,20 Z M8,4 L6.5,12 H9.5 Z" />
+        <!-- C -->
+        <path
+            android:fillColor="@color/brand_blue"
+            android:pathData="M35,4 C33,2 30,2 28,2 C23,2 20,5 20,10 C20,15 23,18 28,18 C30,18 33,18 35,16 V12 H30 V15 H32 C31,16 30,16 28,16 C25,16 23,14 23,10 C23,6 25,4 28,4 C30,4 31,4 32,5 L35,4 Z" />
+        <!-- C -->
+        <path
+            android:fillColor="@color/brand_blue"
+            android:pathData="M55,4 C53,2 50,2 48,2 C43,2 40,5 40,10 C40,15 43,18 48,18 C50,18 53,18 55,16 V12 H50 V15 H52 C51,16 50,16 48,16 C45,16 43,14 43,10 C43,6 45,4 48,4 C50,4 51,4 52,5 L55,4 Z" />
+        <!-- I -->
+        <path
+            android:fillColor="@color/brand_blue"
+            android:pathData="M62,2 H66 V18 H62 Z" />
+        <!-- D -->
+        <path
+            android:fillColor="@color/brand_blue"
+            android:pathData="M72,2 H80 C85,2 88,5 88,10 C88,15 85,18 80,18 H72 Z M76,5 V15 H80 C83,15 84,13 84,10 C84,7 83,5 80,5 Z" />
+        <!-- E -->
+        <path
+            android:fillColor="@color/brand_blue"
+            android:pathData="M95,2 H108 V5 H99 V8 H106 V11 H99 V15 H108 V18 H95 Z" />
+        <!-- N -->
+        <path
+            android:fillColor="@color/brand_blue"
+            android:pathData="M115,2 H119 L125,12 V2 H129 V18 H125 L119,8 V18 H115 Z" />
+        <!-- T -->
+        <path
+            android:fillColor="@color/brand_blue"
+            android:pathData="M135,2 H150 V5 H144 V18 H141 V5 H135 Z" />
+    </group>
+
+    <!-- GUARD in Emergency Red -->
+    <group android:translateX="165" android:translateY="10">
+        <!-- G -->
+        <path
+            android:fillColor="@color/brand_red"
+            android:pathData="M15,4 C13,2 10,2 8,2 C3,2 0,5 0,10 C0,15 3,18 8,18 C10,18 13,18 15,16 V10 H8 V13 H12 V15 C11,16 10,16 8,16 C5,16 3,14 3,10 C3,6 5,4 8,4 C10,4 11,4 12,5 L15,4 Z" />
+        <!-- U -->
+        <path
+            android:fillColor="@color/brand_red"
+            android:pathData="M22,2 V13 C22,16 24,18 28,18 C32,18 34,16 34,13 V2 H37 V13 C37,17 34,20 28,20 C22,20 19,17 19,13 V2 Z" />
+        <!-- A -->
+        <path
+            android:fillColor="@color/brand_red"
+            android:pathData="M45,20 L53,0 L61,20 H57.5 L55.5,15 H50.5 L48.5,20 Z M53,4 L51.5,12 H54.5 Z" />
+        <!-- R -->
+        <path
+            android:fillColor="@color/brand_red"
+            android:pathData="M68,2 H76 C80,2 82,4 82,7 C82,10 80,12 76,12 L82,18 H78 L73,12 H72 V18 H68 Z M72,5 V9 H76 C78,9 79,8.5 79,7 C79,5.5 78,5 76,5 Z" />
+        <!-- D -->
+        <path
+            android:fillColor="@color/brand_red"
+            android:pathData="M88,2 H96 C101,2 104,5 104,10 C104,15 101,18 96,18 H88 Z M92,5 V15 H96 C99,15 100,13 100,10 C100,7 99,5 96,5 Z" />
+    </group>
+
+</vector>

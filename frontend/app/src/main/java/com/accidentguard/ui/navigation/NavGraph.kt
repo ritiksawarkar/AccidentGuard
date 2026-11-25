@@ -28,12 +28,12 @@ import com.accidentguard.ui.call.IncomingCallScreen
 import com.accidentguard.ui.contacts.EmergencyContactsScreen
 import com.accidentguard.ui.crash.CrashAlertScreen
 import com.accidentguard.ui.dashboard.DashboardScreen
+import com.accidentguard.ui.hospital.HospitalAlertDetailScreen
 import com.accidentguard.ui.hospital.HospitalDashboardScreen
 import com.accidentguard.ui.location.GpsRequiredScreen
 import com.accidentguard.ui.location.LiveLocationScreen
 import com.accidentguard.ui.location.PermissionRequiredScreen
 import com.accidentguard.ui.login.LoginScreen
-import com.accidentguard.ui.login.OtpVerificationScreen
 import com.accidentguard.ui.register.RegisterScreen
 import com.accidentguard.ui.security.BiometricLockScreen
 import com.accidentguard.ui.settings.SecuritySettingsScreen
@@ -334,45 +334,6 @@ fun AccidentGuardNavGraph(navController: NavHostController) {
 
                 onNavigateToRegister = {
                     navController.navigate(Screen.Register.route)
-                },
-
-                onNavigateTo2FA = { email, role ->
-
-                    navController.navigate(
-                        Screen.OtpVerification.createRoute(email, role)
-                    )
-                }
-            )
-        }
-
-        // ---------------------------------------------------------
-        // OTP VERIFICATION
-        // ---------------------------------------------------------
-
-        composable(
-            route = Screen.OtpVerification.route,
-            arguments = listOf(
-                navArgument("email") {
-                    type = NavType.StringType
-                },
-                navArgument("role") {
-                    type = NavType.StringType
-                }
-            )
-        ) { backStackEntry ->
-
-            val email =
-                backStackEntry.arguments?.getString("email") ?: ""
-
-            val role =
-                backStackEntry.arguments?.getString("role") ?: ""
-
-            OtpVerificationScreen(
-                email = email,
-                role = role,
-                viewModel = viewModel(),
-                onBack = {
-                    navController.popBackStack()
                 }
             )
         }
@@ -425,6 +386,16 @@ fun AccidentGuardNavGraph(navController: NavHostController) {
 
         composable(Screen.CrashAlert.route) {
             CrashAlertScreen(navController, viewModel())
+        }
+
+        composable(
+            route = Screen.HospitalAlertDetail.route,
+            arguments = listOf(
+                navArgument("alertId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val alertId = backStackEntry.arguments?.getLong("alertId") ?: 0L
+            HospitalAlertDetailScreen(navController, viewModel(), alertId)
         }
 
         // ---------------------------------------------------------

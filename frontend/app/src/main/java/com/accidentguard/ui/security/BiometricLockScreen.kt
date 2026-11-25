@@ -55,7 +55,7 @@ fun BiometricLockScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkNavyBlue),
+            .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -65,13 +65,13 @@ fun BiometricLockScreen(
             Surface(
                 modifier = Modifier.size(100.dp),
                 shape = CircleShape,
-                color = Color.White.copy(alpha = 0.1f)
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = Icons.Default.Lock,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.size(48.dp)
                     )
                 }
@@ -80,18 +80,18 @@ fun BiometricLockScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             Text(
-                text = "Locked",
+                text = "App Locked",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = MaterialTheme.colorScheme.onPrimaryContainer
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Please verify your fingerprint to access Accident Guard safety features.",
+                text = "Please verify your identity to access safety features.",
                 fontSize = 15.sp,
-                color = Color.White.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center,
                 lineHeight = 22.sp
             )
@@ -102,27 +102,34 @@ fun BiometricLockScreen(
                 onClick = { launchBiometric() },
                 modifier = Modifier
                     .size(80.dp)
-                    .background(PrimaryBlue, CircleShape)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
             ) {
                 Icon(
                     imageVector = Icons.Default.Fingerprint,
                     contentDescription = "Retry Biometric",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(40.dp)
                 )
             }
 
             Text(
                 text = "Tap to unlock",
-                color = Color.White.copy(alpha = 0.5f),
+                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.5f),
                 fontSize = 12.sp,
                 modifier = Modifier.padding(top = 12.dp)
             )
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            TextButton(onClick = onLogout) {
-                Text("Sign out from ${tokenManager.getUserName()}", color = SafetyRed)
+            TextButton(
+                onClick = onLogout,
+                modifier = Modifier.heightIn(min = 48.dp)
+            ) {
+                Text(
+                    text = "Sign out from ${tokenManager.getUserName()}",
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }

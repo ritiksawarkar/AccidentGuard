@@ -111,7 +111,7 @@ fun EmergencyContactsScreen(
                             Spacer(modifier = Modifier.height(10.dp))
                         }
                         item {
-                            Divider(modifier = Modifier.padding(vertical = 8.dp), color = DividerGrey)
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = DividerGrey)
                         }
                     }
 

@@ -17,9 +17,7 @@ engine_kwargs = {
 
 if "sqlite" not in settings.DATABASE_URL:
     engine_kwargs["connect_args"] = {
-        "ssl": {
-            "ca": str(ssl_ca_path),
-        }
+        "ssl": {}
     }
 
 engine = create_engine(

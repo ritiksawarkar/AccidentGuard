@@ -1,0 +1,47 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- Subtle Safety Field (Outer Pulse) -->
+    <path
+        android:fillColor="#EAF5FF"
+        android:pathData="M100,20 C144,20 180,56 180,100 C180,144 144,180 100,180 C56,180 20,144 20,100 C20,56 56,20 100,20 Z" />
+
+    <!-- Protective Shield -->
+    <path
+        android:fillColor="#1677E8"
+        android:fillAlpha="0.15"
+        android:pathData="M100,35 L45,55 L45,100 C45,135 65,165 100,180 C135,165 155,135 155,100 L155,55 L100,35 Z" />
+
+    <!-- Vehicle Silhouette (Modern 3/4 View Concept) -->
+    <group android:translateX="50" android:translateY="80">
+        <!-- Main Body -->
+        <path
+            android:fillColor="#063B91"
+            android:pathData="M10,35 L12,28 C14,24 18,22 22,22 L78,22 C82,22 86,24 88,28 L90,35 L95,35 C97.5,35 100,37.5 100,40 L100,55 C100,57.5 97.5,60 95,60 L5,60 C2.5,60 0,57.5 0,55 L0,40 C0,37.5 2.5,35 5,35 L10,35 Z" />
+
+        <!-- Windshield -->
+        <path
+            android:fillColor="#B9DFFF"
+            android:pathData="M20,32 L24,24 C25,23 26,22 28,22 L72,22 C74,22 75,23 76,24 L80,32 L20,32 Z" />
+
+        <!-- Headlights -->
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.8" android:pathData="M5,42 H15 V45 H5 Z" />
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.8" android:pathData="M85,42 H95 V45 H85 Z" />
+    </group>
+
+    <!-- Emergency Detection Indicator (Subtle Red Pulse) -->
+    <path
+        android:fillColor="#F21F1F"
+        android:pathData="M100,75 C103,75 105,77 105,80 C105,83 100,88 100,88 C100,88 95,83 95,80 C95,77 97,75 100,75 Z" />
+
+    <!-- Shield Border Detail -->
+    <path
+        android:strokeColor="#1677E8"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M100,35 L45,55 L45,100 C45,135 65,165 100,180 C135,165 155,135 155,100 L155,55 L100,35 Z" />
+
+</vector>

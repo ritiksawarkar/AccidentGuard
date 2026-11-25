@@ -65,13 +65,20 @@ class HospitalViewModel(application: Application) : AndroidViewModel(application
             }
 
             alertsResult.onSuccess { newAlerts ->
+                android.util.Log.d("HospitalViewModel", "loadDashboard: Received ${newAlerts.size} alerts")
+                val activeCount = newAlerts.count { it.status.equals("PENDING", ignoreCase = true) }
+                val historyCount = newAlerts.count { it.status.equals("ADMITTED", ignoreCase = true) || it.status.equals("CANCELLED", ignoreCase = true) }
+                android.util.Log.d("HospitalViewModel", "loadDashboard: Active=$activeCount, History=$historyCount")
+
                 if (previousAlerts.isNotEmpty() &&
                     newAlerts.size > previousAlerts.size
                 ) {
                     val count = newAlerts.size - previousAlerts.size
                     notificationHelper.showNotification(
                         "New Emergency",
-                        "$count new accident report(s) received."
+                        "$count new accident report(s) received.",
+                        isCritical = true,
+                        navigateTo = "hospital_dashboard"
                     )
                 }
 
@@ -120,7 +127,8 @@ class HospitalViewModel(application: Application) : AndroidViewModel(application
             ).onSuccess {
                 notificationHelper.showNotification(
                     "Ambulance Dispatched",
-                    "An ambulance has been assigned to the emergency."
+                    "An ambulance has been assigned to the emergency.",
+                    navigateTo = "hospital_dashboard"
                 )
                 _uiState.value = HospitalUiState.Success(
                     "Ambulance dispatched successfully!"
@@ -172,7 +180,8 @@ class HospitalViewModel(application: Application) : AndroidViewModel(application
             ).onSuccess { alert ->
                 notificationHelper.showNotification(
                     "Ambulance Dispatched",
-                    "Unit $ambulanceNumber is on the way."
+                    "Unit $ambulanceNumber is on the way.",
+                    navigateTo = "hospital_dashboard"
                 )
                 _uiState.value = HospitalUiState.Success(
                     "Ambulance ${alert.ambulanceNumber} dispatched!"
@@ -199,7 +208,8 @@ class HospitalViewModel(application: Application) : AndroidViewModel(application
                 .onSuccess {
                     notificationHelper.showNotification(
                         "Patient Admitted",
-                        "The patient admission status was updated."
+                        "The patient admission status was updated.",
+                        navigateTo = "hospital_dashboard"
                     )
                     _uiState.value = HospitalUiState.Success(
                         "Patient admitted successfully."
